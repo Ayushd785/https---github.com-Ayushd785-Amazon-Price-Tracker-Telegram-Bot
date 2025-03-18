@@ -62,3 +62,6 @@ print("Data has been saved to product_info.json")
 subprocess.run(["python3", "store-data.py"])  
 print("data Saved to DynamoDB...")
 
+subprocess.run(["python3", "user-script.py"])
+print("Data saved to UserProducts table")
+
