@@ -21,7 +21,7 @@ def check_price_and_notify():
         product_id = item['product_id']
         stored_price = item['stored_price']
 
-        product_data = amazon_products_table.get_item(Key={'product_id': product_id})
+        product_data = amazon_products_table.get_item(Key={'ProductID': product_id})
         if 'Item' not in product_data:
             continue  # Skip if product not found
 
