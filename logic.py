@@ -61,7 +61,3 @@ def check_price_drop():
 
 
 check_price_drop()
-
-
-
-
