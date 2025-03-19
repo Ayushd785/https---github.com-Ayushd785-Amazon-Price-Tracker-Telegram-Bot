@@ -13,6 +13,7 @@ base_url = "https://www.amazon.in/"
 
 # Get user input for Amazon product URL
 url_inp = input("Enter the URL of the product: ")
+email = input("Enter your email: ")
 
 # Extract Product ID from URL
 ID_match = re.search(r"/dp/([A-Z0-9]{10})", url_inp)
@@ -59,7 +60,8 @@ product_info = {
     "price": price_value,
     "url": url_inp,
     "title": title_text,
-    "timestamp": datetime.now().isoformat()
+    "timestamp": datetime.now().isoformat(),
+    "email": email
 }
 
 print("Product Info:", product_info)
@@ -75,5 +77,3 @@ print("Data saved to DynamoDB...")
 
 subprocess.run(["python3", "user-script.py"])
 print("Data saved to UserProducts table")
-
-subprocess.run(["python3", "logic.py"])

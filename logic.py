@@ -1,40 +1,67 @@
 import boto3
-import requests
 import json
+import smtplib
+from email.mime.text import MIMEText
+
+dynamodb = boto3.resource('dynamodb',region_name='ap-south-1')
+product_table = dynamodb.Table('AmazonProducts')
+user_table = dynamodb.Table('UserProducts')
+
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 587
+EMAIL_SENDER = "ayushd785@gmail.com"
+EMAIL_PASSWORD = "gsvv igrz iuov kbns"
+
+def send_email(recipent_email,product_id,current_price,stored_price, subject ,body):
+    msg = MIMEText(body)
+    msg["Subject"] = subject
+    msg["From"] = EMAIL_SENDER
+    msg["To"] = recipent_email
+
+    try:
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
+        server.login(EMAIL_SENDER, EMAIL_PASSWORD)
+        server.sendmail(EMAIL_SENDER, recipent_email, msg.as_string())
+        server.quit()
+        print(f"✅ Email sent to {recipent_email}")
+    except Exception as e:
+        print(f"❌ Email failed: {e}")
 
 
-dynamodb = boto3.resource('dynamodb', region_name='ap-south-1')
 
-amazon_products_table = dynamodb.Table('AmazonProducts')
-user_products_table = dynamodb.Table('UserProducts')
-bot_token = '7909609931:AAG42ERGau0907bqjEfnvq27Ym7vIvqWZis'
-telegram_api_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
 
-def sendmessage(chat_id,message):
-    payload = {'chat_id': chat_id, 'text': message}
-    requests.post(telegram_api_url, json=payload)
+def check_price_drop():
+    response = user_table.scan()
+    users = response.get('Items', [])
 
-def check_price_and_notify():
-    response = user_products_table.scan()
-    for item in response.get('Items',[]):
-        chat_id = item['chat_id']
-        product_id = item['product_id']
-        stored_price = item['stored_price']
+    for user in users :
+        product_id = user["product_id"]
+        stored_price = float(user["stored_price"])
+        recipent_email = user["chat_id"]
 
-        product_data = amazon_products_table.get_item(Key={'ProductID': product_id})
-        if 'Item' not in product_data:
-            continue  # Skip if product not found
+        # product table se latest price fetch karege
+        product = product_table.get_item(Key = {"ProductID": product_id}).get("Item")
+        if not product:
+            continue
+        current_price = float(product["price"])
 
-        current_price = float(product_data['Item']['price'].replace(',', ''))
-        if current_price < stored_price:
-            message = f'Price Drop Alert! \n{product_data["Item"]["title"]} is now ₹{current_price} (was ₹{stored_price}).\nCheck here: {product_data["Item"]["url"]}'
-            sendmessage(chat_id, message)
-            
-            user_products_table.update_item(
-                Key={'chat_id': chat_id, 'product_id': product_id},
-                UpdateExpression='SET stored_price = :new_price',
-                ExpressionAttributeValues={':new_price': str(current_price)}
-            )
+        # ab hum price compare karege
 
-check_price_and_notify()
-print("Price check completed")
+        if current_price<stored_price:
+            subject = "Price Drop Alert"
+            body = f"Price of the product has dropped from {stored_price} to {current_price}"
+            send_email(recipent_email,product_id,current_price,stored_price,subject,body)
+            print("email sent successfuly to ",recipent_email)
+        else:
+            subject = "no change in price"
+            body = f"Price of the product has not changed from {stored_price}"
+            send_email(recipent_email,product_id,current_price,stored_price,subject,body)
+            print("email sent successfuly to ",recipent_email)
+
+
+check_price_drop()
+
+
+
+
